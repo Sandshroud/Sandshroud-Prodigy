@@ -2574,7 +2574,7 @@ bool ChatHandler::HandleNpcPossessCommand(const char * args, WorldSession * m_se
     }
 
     m_session->GetPlayer()->Possess(pTarget);
-    BlueSystemMessage(m_session, "Possessed "I64FMT, pTarget->GetGUID());
+    BlueSystemMessage(m_session, "Possessed " I64FMT, pTarget->GetGUID());
     return true;
 }
 

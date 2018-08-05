@@ -249,7 +249,7 @@ void WorldSession::HandleUnstablePet(WorldPacket & recv_data)
     PlayerPet *pet = _player->GetPlayerPet(petnumber);
     if(!pet)
     {
-        sLog.outDebug("PET SYSTEM: Player "I64FMT" tried to unstable non-existant pet %d", _player->GetGUID(), petnumber);
+        sLog.outDebug("PET SYSTEM: Player " I64FMT" tried to unstable non-existant pet %d", _player->GetGUID(), petnumber);
         return;
     }
 
@@ -279,7 +279,7 @@ void WorldSession::HandleStableSwapPet(WorldPacket & recv_data)
     PlayerPet *pet = _player->GetPlayerPet(petnumber);
     if(!pet)
     {
-        sLog.outDebug("PET SYSTEM: Player "I64FMT" tried to unstable non-existant pet %d", _player->GetGUID(), petnumber);
+        sLog.outDebug("PET SYSTEM: Player " I64FMT" tried to unstable non-existant pet %d", _player->GetGUID(), petnumber);
         return;
     }
     Pet* pPet = _player->GetSummon();

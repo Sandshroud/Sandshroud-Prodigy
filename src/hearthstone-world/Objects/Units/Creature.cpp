@@ -163,7 +163,7 @@ void Creature::OnRemoveCorpse()
     if (IsInWorld() && (int32)m_mapMgr->GetInstanceID() == m_instanceId)
     {
 
-        sLog.Debug("Creature","OnRemoveCorpse Removing corpse of "I64FMT"...", GetGUID());
+        sLog.Debug("Creature","OnRemoveCorpse Removing corpse of " I64FMT"...", GetGUID());
 
         if((GetMapMgr()->GetMapInfo() && GetMapMgr()->GetdbcMap()->israid() && proto && proto->boss) || m_noRespawn)
         {
@@ -184,7 +184,7 @@ void Creature::OnRemoveCorpse()
 
 void Creature::OnRespawn( MapMgr* m)
 {
-    sLog.outDebug("Respawning "I64FMT"...", GetGUID());
+    sLog.outDebug("Respawning " I64FMT"...", GetGUID());
     SetUInt32Value(UNIT_FIELD_HEALTH, GetUInt32Value(UNIT_FIELD_MAXHEALTH));
     SetUInt32Value(UNIT_DYNAMIC_FLAGS, 0); // not tagging shiat
     if(proto)

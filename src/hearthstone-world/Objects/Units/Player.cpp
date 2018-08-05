@@ -1389,7 +1389,7 @@ void Player::_EventCharmAttack()
     //Can't find victim, stop attacking
     if (!pVictim)
     {
-        sLog.Debug( "WORLD"," "I64FMT" doesn't exist.",m_curSelection);
+        sLog.Debug( "WORLD"," " I64FMT" doesn't exist.",m_curSelection);
         sLog.outDebug("Player::Update:  No valid current selection to attack, stopping attack\n");
         setHRegenTimer(5000); //prevent clicking off creature for a quick heal
         clearStateFlag(UF_ATTACKING);
@@ -2127,7 +2127,7 @@ void Player::SpawnPet(uint32 pet_number)
     if(itr == m_Pets.end())
     {
         PetLocks.Release();
-        sLog.outDebug("PET SYSTEM: "I64FMT" Tried to load invalid pet %d", GetGUID(), pet_number);
+        sLog.outDebug("PET SYSTEM: " I64FMT" Tried to load invalid pet %d", GetGUID(), pet_number);
         return;
     }
 

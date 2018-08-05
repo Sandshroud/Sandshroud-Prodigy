@@ -17,6 +17,11 @@
 #include "HashTrait.h"
 
 #ifdef _MSC_VER
+#include <algorithm>
+#pragma warning (push)
+ // debug information too long
+#pragma warning( disable : 4312)
+#pragma warning( disable : 4786)
 // Turn off "conditional expression is constant" warning; MSVC generates this
 // for debug assertions in inlined methods.
 #pragma warning (disable : 4127)

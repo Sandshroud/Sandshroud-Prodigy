@@ -23,12 +23,6 @@
 #pragma warning(disable:4706)
 #endif
 
-#ifdef _MSC_VER
-    #define isnan(x) _isnan(x)
-#else
-    #define isnan(x) std::isnan(x)
-#endif
-
 #include <list>
 #include <vector>
 #include <map>
@@ -48,6 +42,14 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+
+#ifndef isnan
+#ifdef _MSC_VER
+    #define isnan(x) _isnan(x)
+#else
+    #define isnan(x) std::isnan(x)
+#endif
+#endif
 
 #include <threading/Threading.h>
 #include <database/Database.h>

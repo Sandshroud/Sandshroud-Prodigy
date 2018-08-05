@@ -4038,7 +4038,7 @@ bool CombatStatusHandler::IsAttacking(Unit* pTarget)
 void CombatStatusHandler::ForceRemoveAttacker(const uint64& guid)
 {
     // called on aura remove, etc.
-    //printf("ForceRemoveAttacker "I64FMT"\n", guid);
+    //printf("ForceRemoveAttacker " I64FMT"\n", guid);
     AttackerMap::iterator itr = m_attackers.find(guid);
     if(itr == m_attackers.end())
         return;
@@ -4050,7 +4050,7 @@ void CombatStatusHandler::ForceRemoveAttacker(const uint64& guid)
 void CombatStatusHandler::RemoveAttackTarget(Unit* pTarget)
 {
     // called on aura remove, etc.
-    //printf("Trying to remove attack target "I64FMT" from "I64FMT"\n", pTarget->GetGUID(), m_Unit->GetGUID());
+    //printf("Trying to remove attack target " I64FMT" from " I64FMT"\n", pTarget->GetGUID(), m_Unit->GetGUID());
     AttackTMap::iterator itr = m_attackTargets.find(pTarget->GetGUID());
     if(itr == m_attackTargets.end())
         return;
@@ -4067,7 +4067,7 @@ void CombatStatusHandler::RemoveAttackTarget(Unit* pTarget)
         else
         {
             uint32 new_t = (uint32)UNIXTIME + COMBAT_TIMEOUT_IN_SECONDS;
-            //printf("Setting attack target "I64FMT" on "I64FMT" to time out after 5 seconds.\n", pTarget->GetGUID(), m_Unit->GetGUID());
+            //printf("Setting attack target " I64FMT" on " I64FMT" to time out after 5 seconds.\n", pTarget->GetGUID(), m_Unit->GetGUID());
             if( itr->second < new_t )
                 itr->second = new_t;
         }
@@ -4077,7 +4077,7 @@ void CombatStatusHandler::RemoveAttackTarget(Unit* pTarget)
 void CombatStatusHandler::OnDamageDealt(Unit* pTarget, uint32 damage)
 {
     // we added an aura, or dealt some damage to a target. they need to have us as an attacker, and they need to be our attack target if not.
-    //printf("OnDamageDealt to "I64FMT" from "I64FMT" timeout %u\n", pTarget->GetGUID(), m_Unit->GetGUID(), timeout);
+    //printf("OnDamageDealt to " I64FMT" from " I64FMT" timeout %u\n", pTarget->GetGUID(), m_Unit->GetGUID(), timeout);
     if(pTarget == m_Unit)
         return;
 
@@ -4125,7 +4125,7 @@ void CombatStatusHandler::UpdateTargets()
         ++itr;
         if( it2->second <= mytm )
         {
-            //printf("Timeout for attack target "I64FMT" on "I64FMT" expired.\n", it2->first, m_Unit->GetGUID());
+            //printf("Timeout for attack target " I64FMT" on " I64FMT" expired.\n", it2->first, m_Unit->GetGUID());
             pUnit = m_Unit->GetMapMgr()->GetUnit(it2->first);
             if( pUnit == NULL || pUnit->isDead() )
                 m_attackTargets.erase(it2);
