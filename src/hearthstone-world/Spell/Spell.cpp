@@ -136,15 +136,16 @@ void SpellCastTargets::read( WorldPacket & data, uint64 caster, uint8 castFlags 
 
     data >> m_targetMask;
 
-    if( m_targetMask == TARGET_FLAG_SELF  || m_targetMask & TARGET_FLAG_GLYPH )
-    {
-        m_unitTarget = caster;
-    }
-
     if( m_targetMask & (TARGET_FLAG_OBJECT | TARGET_FLAG_UNIT | TARGET_FLAG_CORPSE | TARGET_FLAG_CORPSE2 ) )
     {
         data >> guid;
         m_unitTarget = guid.GetOldGuid();
+    }
+
+    if( m_targetMask == TARGET_FLAG_SELF  || m_targetMask & TARGET_FLAG_GLYPH )
+    {
+        m_targetMask |= TARGET_FLAG_UNIT;
+        m_unitTarget = caster;
     }
 
     if( m_targetMask & ( TARGET_FLAG_ITEM | TARGET_FLAG_TRADE_ITEM ) )
@@ -215,10 +216,10 @@ void SpellCastTargets::write( WorldPacket& data )
     data << m_targetMask;
 
     if( m_targetMask & (TARGET_FLAG_UNIT | TARGET_FLAG_CORPSE | TARGET_FLAG_CORPSE2 | TARGET_FLAG_OBJECT | TARGET_FLAG_GLYPH) )
-        FastGUIDPack( data, m_unitTarget );
+        FastGUIDPack(data, m_unitTarget);
 
     if( m_targetMask & ( TARGET_FLAG_ITEM | TARGET_FLAG_TRADE_ITEM ) )
-        FastGUIDPack( data, m_itemTarget );
+        FastGUIDPack(data, m_itemTarget);
 
     if( m_targetMask & TARGET_FLAG_SOURCE_LOCATION )
         data << unkUint64_1 << m_srcX << m_srcY << m_srcZ;
@@ -1807,6 +1808,7 @@ void Spell::cast(bool check)
             }
 
             m_isCasting = false;
+            SendSpellExecute();
 
             if(m_spellState != SPELL_STATE_CASTING)
                 finish();
@@ -2317,9 +2319,8 @@ void Spell::SendSpellStart()
     if( GetType() == SPELL_DMG_TYPE_RANGED )
         cast_flags |= SPELL_CAST_FLAGS_RANGED;
 
-    if(GetSpellProto()->powerType > 0)
-        if(GetSpellProto()->powerType != POWER_HEALTH)
-            cast_flags |= SPELL_CAST_FLAGS_POWER_UPDATE;
+    if(u_caster && (GetSpellProto()->powerType > 0 && GetSpellProto()->powerType != POWER_HEALTH))
+        cast_flags |= SPELL_CAST_FLAGS_POWER_UPDATE;
 
     if(p_caster && p_caster->getClass() == DEATHKNIGHT && GetSpellProto()->runeCostID)
     {
@@ -2344,9 +2345,9 @@ void Spell::SendSpellStart()
     if( i_caster != NULL )
         data << i_caster->GetNewGUID();
     else
-        data << u_caster->GetNewGUID();
+        data << m_caster->GetNewGUID();
 
-    data << u_caster->GetNewGUID();
+    data << m_caster->GetNewGUID();
     data << uint8(extra_cast_number);
     data << uint32(GetSpellProto()->Id);
     data << uint32(cast_flags);
@@ -2413,7 +2414,6 @@ void Spell::SendSpellStart()
             data << uint32(0) << uint32(0);
     }
 
-    data << uint32(152);
     m_caster->SendMessageToSet( &data, true );
 }
 
@@ -2430,9 +2430,8 @@ void Spell::SendSpellGo()
     if (GetType() == SPELL_DMG_TYPE_RANGED)
         cast_flags |= SPELL_CAST_FLAGS_RANGED; // 0x20 RANGED
 
-    if(GetSpellProto()->powerType > 0)
-        if(GetSpellProto()->powerType != POWER_TYPE_HEALTH) // 0x
-            cast_flags |= SPELL_CAST_FLAGS_POWER_UPDATE;
+    if(u_caster && (GetSpellProto()->powerType > 0 && GetSpellProto()->powerType != POWER_TYPE_HEALTH)) // 0x
+        cast_flags |= SPELL_CAST_FLAGS_POWER_UPDATE;
 
     if (m_missileTravelTime)
         cast_flags |= SPELL_CAST_FLAGS_PROJECTILE;
@@ -2443,14 +2442,13 @@ void Spell::SendSpellGo()
     WorldPacket data(SMSG_SPELL_GO, 200);
     if( i_caster != NULL ) // this is needed for correct cooldown on items
         data << i_caster->GetNewGUID();
-    else
-        data << m_caster->GetNewGUID();
-
+    else data << m_caster->GetNewGUID();
     data << m_caster->GetNewGUID();
-    data << extra_cast_number;
-    data << GetSpellProto()->Id;
-    data << cast_flags;
-    data << getMSTime();
+
+    data << uint8(extra_cast_number);
+    data << uint32(GetSpellProto()->Id);
+    data << uint32(cast_flags);
+    data << uint32(getMSTime());
 
     writeSpellGoTargets(&data);
 
@@ -2494,7 +2492,17 @@ void Spell::SendSpellGo()
     if( m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION )
         data << uint8( 0 );
 
-    m_caster->SendMessageToSet( &data, u_caster->IsPlayer() );
+    m_caster->SendMessageToSet( &data, m_caster->IsPlayer() );
+}
+
+void Spell::SendSpellExecute()
+{
+    WorldPacket data(SMSG_SPELLLOGEXECUTE, 20);
+    FastGUIDPack(data, m_caster->GetGUID());
+    data << m_spellInfo->Id;
+    data << uint32(0);
+
+    m_caster->SendMessageToSet(&data, true);
 }
 
 void Spell::SendProjectileUpdate()
@@ -2513,8 +2521,11 @@ void Spell::writeSpellGoTargets( WorldPacket * data )
 
     // Make sure we don't hit over 100 targets.
     // It's fine internally, but sending it to the client will REALLY cause it to freak.
+    uint8 hitCount = m_hitTargetCount;
+    if(TargetMap.empty() && m_targets.m_unitTarget)
+        hitCount++;
 
-    *data << uint8(m_hitTargetCount);
+    *data << uint8(hitCount);
     if( m_hitTargetCount > 0 )
     {
         counter = 0;
@@ -2527,6 +2538,8 @@ void Spell::writeSpellGoTargets( WorldPacket * data )
             }
         }
     }
+    if(TargetMap.empty() && m_targets.m_unitTarget)
+        *data << m_targets.m_unitTarget;
 
     *data << uint8(m_missTargetCount);
     if( m_missTargetCount > 0 )
