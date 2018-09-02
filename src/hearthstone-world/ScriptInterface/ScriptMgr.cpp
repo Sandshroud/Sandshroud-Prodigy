@@ -553,7 +553,11 @@ bool ScriptMgr::HandleScriptedProcLimits(Unit *target, uint32 &uSpellId, int32 &
 {
     HandleScriptProclimitMap::iterator itr = _proclimits.find(uSpellId);
     if(itr == _proclimits.end())
+    {
+        if(_baseproclimits == NULL)
+            return false;
         return _baseproclimits(target, uSpellId, damage, targets, triggered, dataHolder);
+    }
 
     exp_handle_script_proclimit ptr = itr->second;
     return (ptr)(target, uSpellId, damage, targets, triggered, dataHolder);
