@@ -1348,8 +1348,7 @@ void Aura::SpellAuraPeriodicDamage(bool apply)
                 {
                     if(!pSpellId) //we need a parent spell and should always have one since it procs on it
                         break;
-                    SpellEntry * parentsp = NULL;
-                    parentsp = dbcSpell.LookupEntry(pSpellId);
+                    SpellEntry * parentsp = dbcSpell.LookupEntry(pSpellId);
                     if(parentsp == NULL)
                         return;
                     if ( m_caster->IsPlayer() )
@@ -1359,8 +1358,7 @@ void Aura::SpellAuraPeriodicDamage(bool apply)
                         if (!dmg)
                             return;
 
-                        Spell* spelld = NULLSPELL;
-                        spelld = new Spell(m_caster, parentsp, false, NULLAURA);
+                        Spell* spelld = new Spell(m_caster, parentsp, false, NULLAURA);
                         SpellCastTargets targets(m_target->GetGUID());
                         //this is so not good, maybe parent spell has more then dmg effect and we use it to calc our new dmg :(
                         dmg = 0;

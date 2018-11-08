@@ -619,108 +619,119 @@ uint32 Unit::HandleProc( uint32 flag, uint32 flag2, Unit* victim, SpellEntry* Ca
                 itr2->weapon_damage_type != weapon_damage_type)
                 continue; // This spell should proc only from other hand attacks
 
-            uint32 spellId = itr2->spellId;
-            uint32 proc_Chance = itr2->procChance;
-            if( itr2->procFlags & PROC_ON_CAST_SPELL || itr2->procFlags & PROC_ON_SPELL_LAND || itr2->procFlags & PROC_ON_CAST_SPECIFIC_SPELL || itr2->procFlags & PROC_ON_ANY_HOSTILE_ACTION || (itr2->procFlags & PROC_ON_PHYSICAL_ATTACK && sp->Spell_Dmg_Type & SPELL_DMG_TYPE_MELEE))
-            {
-                if( CastingSpell == NULL )
-                    continue;
+            // Require spell crit when flag exists
+            if( itr2->procflags2 & PROC_ON_SPELL_CRIT_HIT && !(flag2 & PROC_ON_SPELL_CRIT_HIT))
+                continue;
 
-                if( itr2->SpellClassMask[0] || itr2->SpellClassMask[1] || itr2->SpellClassMask[2] )
+            SpellCastTargets targets;
+            if( itr2->procflags2 & PROC_TARGET_SELF )
+                targets.m_unitTarget = GetGUID();
+            else if( victim != NULL )
+                targets.m_unitTarget = victim->GetGUID();
+
+            //to be sure, check targeting
+            if( itr2->spellId != 47930 )
+            {
+                for(uint32 j = 0; j < 3; ++j)
                 {
-                    if (!(itr2->SpellClassMask[0] & CastingSpell->SpellGroupType[0]) &&
-                        !(itr2->SpellClassMask[1] & CastingSpell->SpellGroupType[1]) &&
-                        !(itr2->SpellClassMask[2] & CastingSpell->SpellGroupType[2]))
+                    if( sp->EffectImplicitTargetA[j] == 1 )
+                    {
+                        targets.m_unitTarget = GetGUID();
+                        break;
+                    }
+                }
+            }
+
+            bool skip_checks = false;
+            int32 damage = itr2->procValue;
+            uint32 spellId = itr2->spellId, proc_Chance = itr2->procChance;
+            if(!sScriptMgr.HandleScriptedProcLimits(this, spellId, damage, targets, skip_checks, &(*itr2), &procData))
+                continue;
+
+            if(skip_checks == false)
+            {
+                if( itr2->procFlags & PROC_ON_CAST_SPELL || itr2->procFlags & PROC_ON_SPELL_LAND || itr2->procFlags & PROC_ON_CAST_SPECIFIC_SPELL || itr2->procFlags & PROC_ON_ANY_HOSTILE_ACTION || (itr2->procFlags & PROC_ON_PHYSICAL_ATTACK && sp->Spell_Dmg_Type & SPELL_DMG_TYPE_MELEE))
+                {
+                    if( CastingSpell == NULL )
                         continue;
-                }
-                else if( itr2->procFlags & PROC_ON_CAST_SPECIFIC_SPELL )
-                {
-                    //this is wrong, dummy is too common to be based on this, we should use spellgroup or something
-                    SpellEntry* sp = dbcSpell.LookupEntry( spellId );
-                    if( sp->SpellIconID != CastingSpell->SpellIconID )
+
+                    if( itr2->SpellClassMask[0] || itr2->SpellClassMask[1] || itr2->SpellClassMask[2] )
                     {
-                        if( !ospinfo->School )
-                            continue;
-                        if( ospinfo->School != CastingSpell->School )
-                            continue;
-                        if( CastingSpell->EffectImplicitTargetA[0] == 1 ||
-                            CastingSpell->EffectImplicitTargetA[1] == 1 ||
-                            CastingSpell->EffectImplicitTargetA[2] == 1) //Prevents school based procs affecting caster when self buffing
+                        if (!(itr2->SpellClassMask[0] & CastingSpell->SpellGroupType[0]) &&
+                            !(itr2->SpellClassMask[1] & CastingSpell->SpellGroupType[1]) &&
+                            !(itr2->SpellClassMask[2] & CastingSpell->SpellGroupType[2]))
                             continue;
                     }
-                    else if( sp->SpellIconID == 1 )
-                        continue;
-                }
-            }
-
-            //Custom procchance modifications based on equipped weapon speed.
-            if( IsPlayer() && ospinfo != NULL && ospinfo->ProcsPerMinute > 0.0f )
-            {
-                float ppm = ospinfo->ProcsPerMinute;
-
-                Player* plr = TO_PLAYER( this );
-                Item* weapon = NULLITEM;
-                if(plr->GetItemInterface() && weapon_damage_type > 0 && weapon_damage_type < 3)
-                    weapon = plr->GetItemInterface()->GetInventoryItem( EQUIPMENT_SLOT_MAINHAND + weapon_damage_type - 1 );
-                if(weapon && weapon->GetProto())
-                {
-                    float speed = float( weapon->GetProto()->Delay );
-                    proc_Chance = float2int32( speed * 0.001f * ppm / 0.6f );
-                }
-
-                if( plr->IsInFeralForm() )
-                {
-                    if( plr->GetShapeShift() == FORM_CAT )
+                    else if( itr2->procFlags & PROC_ON_CAST_SPECIFIC_SPELL )
                     {
-                        proc_Chance = float2int32( ppm / 0.6f );
-                    }
-                    else if( plr->GetShapeShift() == FORM_BEAR || plr->GetShapeShift() == FORM_DIREBEAR )
-                    {
-                        proc_Chance = float2int32( ppm / 0.24f );
-                    }
-                }
-            }
-
-            //hack shit for different proc rates
-            if( spellId == 40472 )
-            {
-                if( !CastingSpell )
-                    continue;
-
-                if( CastingSpell->NameHash == SPELL_HASH_FLASH_OF_LIGHT ||
-                    CastingSpell->NameHash == SPELL_HASH_HOLY_LIGHT )
-                {
-                    spellId = 40471;
-                    proc_Chance -= 35;
-                }
-                else if( CastingSpell->buffIndexType != SPELL_TYPE_INDEX_JUDGEMENT )
-                    continue;
-            }
-
-            if(ospinfo != NULL)
-                SM_FIValue( SM[SMT_PROC_CHANCE][0], (int32*)&proc_Chance, ospinfo->SpellGroupType );
-
-            if( spellId && Rand( proc_Chance ) )
-            {
-                SpellCastTargets targets;
-                if( itr2->procflags2 & PROC_TARGET_SELF )
-                    targets.m_unitTarget = GetGUID();
-                else if( victim != NULL )
-                    targets.m_unitTarget = victim->GetGUID();
-
-                //to be sure, check targeting
-                if( spellId != 47930 )
-                {
-                    for(uint32 j = 0; j < 3; ++j)
-                    {
-                        if( sp->EffectImplicitTargetA[j] == 1 )
+                        //this is wrong, dummy is too common to be based on this, we should use spellgroup or something
+                        SpellEntry* sp = dbcSpell.LookupEntry( spellId );
+                        if( sp->SpellIconID != CastingSpell->SpellIconID )
                         {
-                            targets.m_unitTarget = GetGUID();
-                            break;
+                            if( !ospinfo->School )
+                                continue;
+                            if( ospinfo->School != CastingSpell->School )
+                                continue;
+                            if( CastingSpell->EffectImplicitTargetA[0] == 1 ||
+                                CastingSpell->EffectImplicitTargetA[1] == 1 ||
+                                CastingSpell->EffectImplicitTargetA[2] == 1) //Prevents school based procs affecting caster when self buffing
+                                continue;
+                        }
+                        else if( sp->SpellIconID == 1 )
+                            continue;
+                    }
+                }
+
+                //Custom procchance modifications based on equipped weapon speed.
+                if( IsPlayer() && ospinfo != NULL && ospinfo->ProcsPerMinute > 0.0f )
+                {
+                    float ppm = ospinfo->ProcsPerMinute;
+
+                    Player* plr = TO_PLAYER( this );
+                    Item* weapon = NULLITEM;
+                    if(plr->GetItemInterface() && weapon_damage_type > 0 && weapon_damage_type < 3)
+                        weapon = plr->GetItemInterface()->GetInventoryItem( EQUIPMENT_SLOT_MAINHAND + weapon_damage_type - 1 );
+                    if(weapon && weapon->GetProto())
+                    {
+                        float speed = float( weapon->GetProto()->Delay );
+                        proc_Chance = float2int32( speed * 0.001f * ppm / 0.6f );
+                    }
+
+                    if( plr->IsInFeralForm() )
+                    {
+                        if( plr->GetShapeShift() == FORM_CAT )
+                        {
+                            proc_Chance = float2int32( ppm / 0.6f );
+                        }
+                        else if( plr->GetShapeShift() == FORM_BEAR || plr->GetShapeShift() == FORM_DIREBEAR )
+                        {
+                            proc_Chance = float2int32( ppm / 0.24f );
                         }
                     }
                 }
 
+                //hack shit for different proc rates
+                if( spellId == 40472 )
+                {
+                    if( !CastingSpell )
+                        continue;
+
+                    if( CastingSpell->NameHash == SPELL_HASH_FLASH_OF_LIGHT ||
+                        CastingSpell->NameHash == SPELL_HASH_HOLY_LIGHT )
+                    {
+                        spellId = 40471;
+                        proc_Chance -= 35;
+                    }
+                    else if( CastingSpell->buffIndexType != SPELL_TYPE_INDEX_JUDGEMENT )
+                        continue;
+                }
+
+                if(ospinfo != NULL)
+                    SM_FIValue( SM[SMT_PROC_CHANCE][0], (int32*)&proc_Chance, ospinfo->SpellGroupType );
+            }
+
+            if( spellId && Rand( proc_Chance ) )
+            {
                 /* hmm whats a reasonable value here */
                 if( m_procCounter > 40 )
                 {
@@ -752,9 +763,6 @@ uint32 Unit::HandleProc( uint32 flag, uint32 flag2, Unit* victim, SpellEntry* Ca
                     }
                 }
 
-                int32 damage = itr2->procValue;
-                if(!sScriptMgr.HandleScriptedProcLimits(this, spellId, damage, targets, &(*itr2), &procData))
-                    continue;
                 SpellEntry *spellInfo = dbcSpell.LookupEntry( spellId );
                 if( victim == TO_UNIT( this ) && spellInfo->c_is_flags & SPELL_FLAG_CANNOT_PROC_ON_SELF )
                     continue;

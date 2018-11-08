@@ -196,7 +196,7 @@ public:
     GameObjectAIScript * CreateAIScriptClassForGameObject(uint32 uEntryId, GameObject* pGameObject);
     MapManagerScript * CreateMapManagerScriptForMapManager(uint32 mapid, MapMgr* _internal, bool Silent);
 
-    bool HandleScriptedProcLimits(Unit *target, uint32 &uSpellId, int32 &damage, SpellCastTargets &targets, ProcTriggerSpell *triggered, ProcDataHolder *dataHolder);
+    bool HandleScriptedProcLimits(Unit *target, uint32 &uSpellId, int32 &damage, SpellCastTargets &targets, bool &skip_checks, ProcTriggerSpell *triggered, ProcDataHolder *dataHolder);
     bool HandleScriptedSpellEffect(uint32 uSpellId, uint32 i, Spell* pSpell);
     bool CallScriptedDummySpell(uint32 uSpellId, uint32 i, Spell* pSpell);
     bool CallScriptedDummyAura(uint32 uSpellId, uint32 i, Aura*  pAura, bool apply);

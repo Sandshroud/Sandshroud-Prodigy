@@ -549,7 +549,7 @@ GameObjectAIScript * ScriptMgr::CreateAIScriptClassForGameObject(uint32 uEntryId
     return (function_ptr)(pGameObject);
 }
 
-bool ScriptMgr::HandleScriptedProcLimits(Unit *target, uint32 &uSpellId, int32 &damage, SpellCastTargets &targets, ProcTriggerSpell *triggered, ProcDataHolder *dataHolder)
+bool ScriptMgr::HandleScriptedProcLimits(Unit *target, uint32 &uSpellId, int32 &damage, SpellCastTargets &targets, bool &skip_checks, ProcTriggerSpell *triggered, ProcDataHolder *dataHolder)
 {
     HandleScriptProclimitMap::iterator itr = _proclimits.find(uSpellId);
     if(itr == _proclimits.end())
@@ -559,6 +559,7 @@ bool ScriptMgr::HandleScriptedProcLimits(Unit *target, uint32 &uSpellId, int32 &
         return _baseproclimits(target, uSpellId, damage, targets, triggered, dataHolder);
     }
 
+    skip_checks = true;
     exp_handle_script_proclimit ptr = itr->second;
     return (ptr)(target, uSpellId, damage, targets, triggered, dataHolder);
 }

@@ -1231,6 +1231,17 @@ void ApplySingleSpellFixes(SpellEntry *sp)
             sp->EffectMiscValue[1] = SMT_PROC_CHANCE;
         }break;
 
+        //Mage - Ignite
+    case 11119:
+    case 11120:
+    case 12846:
+    case 12847:
+    case 12848:
+        {
+            sp->EffectTriggerSpell[0]   =   12654;
+            sp->procflags2 = PROC_ON_SPELL_CRIT_HIT;
+        }break;
+
         //Mage - Wand   Specialization. Not the forst   thing   we messed   up. Blizz   uses attack as magic and wandds as weapons :S
     case 6057:
     case 6085:
